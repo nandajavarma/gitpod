@@ -51,31 +51,49 @@ jobs:
           TOKEN: ${{ secrets.ROBOQUAT_AUTOMATIC_CHANGELOG }}
         shell: bash
 
-  release:
+  # release:
+  #   needs: [generate-release-note]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #   - name: "Build Changelog"
+  #     id: build_changelog
+  #     uses: mikepenz/release-changelog-builder-action@latest
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+  #     with:
+  #       fetch-depth: 0
+  #   - name: Get release note
+  #     id: note
+  #     run: echo ::set-output name=releasenote::$(cat install/installer/docs/release-note.md)
+  #   - name: Create Draft Release
+  #     id: create_release
+  #     uses: actions/create-release@latest
+  #     env:
+  #       GITHUB_TOKEN: ${{ secrets.ROBOQUAT_AUTOMATIC_CHANGELOG }}
+  #     with:
+  #       tag_name: ${{ github.ref }}
+  #       release_name: ${{ github.ref }}
+  #       draft: true
+  #       prerelease: false
+  #       body: |
+  #         ${{ steps.build_changelog.outputs.changelog }}
+
+
+  comment-pr:
     needs: [generate-release-note]
     runs-on: ubuntu-latest
     steps:
-    - name: "Build Changelog"
-      id: build_changelog
-      uses: mikepenz/release-changelog-builder-action@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0
-    - name: Get release note
-      id: note
-      run: echo ::set-output name=releasenote::$(cat install/installer/docs/release-note.md)
-    - name: Create Draft Release
-      id: create_release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.ROBOQUAT_AUTOMATIC_CHANGELOG }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: true
-        prerelease: false
-        body: |
-          ${{ steps.build_changelog.outputs.changelog }}
+      - uses: actions/checkout@v1
+      # Find the PR associated with this push, if there is one.
+      - uses: jwalton/gh-find-current-pr@v1
+        id: findPr
+        with:
+          # Can be "open", "closed", or "all".  Defaults to "open".
+          state: open
+      # This will echo "Your PR is 7", or be skipped if there is no current PR.
+      - run: echo "Your PR is ${PR}"
+        if: success() && steps.findPr.outputs.number
+        env:
+          PR: ${{ steps.findPr.outputs.pr }}
